@@ -3,8 +3,8 @@ package com.example.dzluckywheel.data.repository
 import com.example.dzluckywheel.data.model.Entry
 
 interface EntryRepository {
-    suspend fun getAllEntries(): List<Entry>
-    suspend fun addEntry(entry: Entry)
-    suspend fun removeEntry(entry: Entry)
-    suspend fun updateEntry(entry: Entry)
+    fun getAllEntries(): List<Entry>
+    fun addEntry(entry: Entry)
+    fun removeEntry(entry: Entry)
+    fun updateEntry(entry: Entry)
 }

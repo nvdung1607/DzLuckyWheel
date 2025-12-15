@@ -1,9 +1,9 @@
-package com.example.dzluckywheel.domain
+package com.example.dzluckywheel.domain.usecase
 
 import com.example.dzluckywheel.data.model.Entry
 
-class ShuffleEntriesUseCase {
+class SortEntriesUseCase {
     operator fun invoke(entries: List<Entry>): List<Entry> {
-        return entries.shuffled()
+        return entries.sortedBy { it.value }
     }
 }
