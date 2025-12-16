@@ -20,8 +20,10 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        // Khởi tạo WheelView
         wheelView = findViewById(R.id.wheelView)
 
+        // Khởi tạo RecyclerView + Adapter
         adapter = EntryAdapter(emptyList())
         val recyclerView = findViewById<RecyclerView>(R.id.recyclerView)
         recyclerView.layoutManager = LinearLayoutManager(this)
@@ -33,10 +35,33 @@ class MainActivity : AppCompatActivity() {
             wheelView.setEntries(entries) // cập nhật vòng quay
         }
 
+        // Lắng nghe kết quả quay từ WheelView
+        wheelView.onResult = { entry ->
+            val dialog = ResultDialog(this, entry) { removed ->
+                viewModel.removeEntry(removed)
+            }
+            dialog.show()
+        }
+
         // Tạo vài entry mặc định để test
         viewModel.addEntry(Entry(1, EntryType.TEXT, "Alice"))
         viewModel.addEntry(Entry(2, EntryType.TEXT, "Bob"))
         viewModel.addEntry(Entry(3, EntryType.TEXT, "Charlie"))
         viewModel.addEntry(Entry(4, EntryType.TEXT, "David"))
+
+        // Gắn sự kiện cho 3 nút điều khiển
+        findViewById<android.widget.Button>(R.id.btnShuffle).setOnClickListener {
+            viewModel.shuffleEntries()
+        }
+
+        findViewById<android.widget.Button>(R.id.btnSort).setOnClickListener {
+            viewModel.sortEntries()
+        }
+
+        findViewById<android.widget.Button>(R.id.btnAddImage).setOnClickListener {
+            // TODO: mở gallery để chọn ảnh và thêm vào danh sách
+            // Tạm thời thêm entry giả để test
+            viewModel.addEntry(Entry(System.currentTimeMillis().toInt(), EntryType.TEXT, "New Entry"))
+        }
     }
 }
