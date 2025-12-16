@@ -1,36 +1,33 @@
 package com.example.dzluckywheel.presentation.viewmodel
 
-import android.util.Log
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.example.dzluckywheel.data.model.Entry
 import com.example.dzluckywheel.data.model.EntryType
-import com.example.dzluckywheel.data.repository.InMemoryEntryRepository
-import com.example.dzluckywheel.domain.usecase.*
 
 class WheelViewModel : ViewModel() {
 
-    private val repository = InMemoryEntryRepository()
+    private val _entries = MutableLiveData<List<Entry>>(emptyList())
+    val entries: LiveData<List<Entry>> = _entries
 
-    private val addEntryUseCase = AddEntryUseCase(repository)
-    private val removeEntryUseCase = RemoveEntryUseCase(repository)
-    private val shuffleEntriesUseCase = ShuffleEntriesUseCase()
-    private val sortEntriesUseCase = SortEntriesUseCase()
-    private val excludeEntryUseCase = ExcludeEntryUseCase(repository)
+    fun addEntry(entry: Entry) {
+        val current = _entries.value ?: emptyList()
+        _entries.value = current + entry
+    }
 
-    fun testLogic() {
-        addEntryUseCase(Entry(1, EntryType.TEXT, "Alice"))
-        addEntryUseCase(Entry(2, EntryType.TEXT, "Bob"))
-        addEntryUseCase(Entry(3, EntryType.TEXT, "Charlie"))
+    fun removeEntry(entry: Entry) {
+        val current = _entries.value ?: emptyList()
+        _entries.value = current.filter { it.id != entry.id }
+    }
 
-        Log.d("WheelViewModel", "All entries: ${repository.getAllEntries()}")
+    fun shuffleEntries() {
+        val current = _entries.value ?: emptyList()
+        _entries.value = current.shuffled()
+    }
 
-        val shuffled = shuffleEntriesUseCase(repository.getAllEntries())
-        Log.d("WheelViewModel", "Shuffled: $shuffled")
-
-        val sorted = sortEntriesUseCase(repository.getAllEntries())
-        Log.d("WheelViewModel", "Sorted: $sorted")
-
-        excludeEntryUseCase(Entry(2, EntryType.TEXT, "Bob"))
-        Log.d("WheelViewModel", "After exclude: ${repository.getAllEntries()}")
+    fun sortEntries() {
+        val current = _entries.value ?: emptyList()
+        _entries.value = current.sortedBy { it.value }
     }
 }
