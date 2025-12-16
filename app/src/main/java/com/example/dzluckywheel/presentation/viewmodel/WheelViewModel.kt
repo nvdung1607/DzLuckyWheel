@@ -4,7 +4,6 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.example.dzluckywheel.data.model.Entry
-import com.example.dzluckywheel.data.model.EntryType
 
 class WheelViewModel : ViewModel() {
 
@@ -12,22 +11,23 @@ class WheelViewModel : ViewModel() {
     val entries: LiveData<List<Entry>> = _entries
 
     fun addEntry(entry: Entry) {
-        val current = _entries.value ?: emptyList()
-        _entries.value = current + entry
+        _entries.value = _entries.value?.plus(entry)
     }
 
     fun removeEntry(entry: Entry) {
-        val current = _entries.value ?: emptyList()
-        _entries.value = current.filter { it.id != entry.id }
+        _entries.value = _entries.value?.filter { it.id != entry.id }
     }
 
     fun shuffleEntries() {
-        val current = _entries.value ?: emptyList()
-        _entries.value = current.shuffled()
+        _entries.value = _entries.value?.shuffled()
     }
 
     fun sortEntries() {
-        val current = _entries.value ?: emptyList()
-        _entries.value = current.sortedBy { it.value }
+        _entries.value = _entries.value?.sortedBy { it.value }
+    }
+
+    // 👉 Hàm này cần thêm để MainActivity gọi được
+    fun setEntries(newEntries: List<Entry>) {
+        _entries.value = newEntries
     }
 }

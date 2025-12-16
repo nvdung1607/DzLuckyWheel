@@ -3,6 +3,7 @@ package com.example.dzluckywheel.presentation.ui
 import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.*
+import android.net.Uri
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
@@ -31,16 +32,11 @@ class WheelView @JvmOverloads constructor(
 
     // Danh sách màu đa dạng
     private val colors = listOf(
-        Color.parseColor("#FF6F61"), // đỏ cam
-        Color.parseColor("#6B5B95"), // tím
-        Color.parseColor("#88B04B"), // xanh lá
-        Color.parseColor("#F7CAC9"), // hồng nhạt
-        Color.parseColor("#92A8D1"), // xanh dương nhạt
-        Color.parseColor("#955251"), // nâu đỏ
-        Color.parseColor("#B565A7"), // tím pastel
-        Color.parseColor("#009B77"), // xanh ngọc
-        Color.parseColor("#DD4124"), // đỏ tươi
-        Color.parseColor("#45B8AC")  // xanh teal
+        Color.parseColor("#FF6F61"), Color.parseColor("#6B5B95"),
+        Color.parseColor("#88B04B"), Color.parseColor("#F7CAC9"),
+        Color.parseColor("#92A8D1"), Color.parseColor("#955251"),
+        Color.parseColor("#B565A7"), Color.parseColor("#009B77"),
+        Color.parseColor("#DD4124"), Color.parseColor("#45B8AC")
     )
 
     fun setEntries(entries: List<Entry>) {
@@ -50,26 +46,55 @@ class WheelView @JvmOverloads constructor(
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        if (entries.isEmpty()) return
-
         val size = min(width, height).toFloat()
         val rect = RectF(0f, 0f, size, size)
+
+        if (entries.isEmpty()) {
+            // Vẽ vòng tròn trống khi không có entry
+            paint.color = Color.LTGRAY
+            canvas.drawArc(rect, 0f, 360f, true, paint)
+            return
+        }
 
         val sweepAngle = 360f / entries.size
         var startAngle = rotationAngle
 
         entries.forEachIndexed { index, entry ->
-            // chọn màu theo index, nếu entries > colors thì lặp lại
+            // Vẽ lát với màu riêng
             paint.color = colors[index % colors.size]
             canvas.drawArc(rect, startAngle, sweepAngle, true, paint)
 
-            // vẽ text
-            paint.color = Color.BLACK
+            // Tính vị trí trung tâm lát để vẽ nội dung
             val angleRad = Math.toRadians((startAngle + sweepAngle / 2).toDouble())
-            val textX = size / 2 + (size / 3) * Math.cos(angleRad).toFloat()
-            val textY = size / 2 + (size / 3) * Math.sin(angleRad).toFloat()
-            canvas.drawText(entry.value, textX, textY, paint)
+            val contentX = size / 2 + (size / 3) * Math.cos(angleRad).toFloat()
+            val contentY = size / 2 + (size / 3) * Math.sin(angleRad).toFloat()
 
+            if (entry.type == com.example.dzluckywheel.data.model.EntryType.TEXT) {
+                paint.color = Color.BLACK
+                canvas.drawText(entry.value, contentX, contentY, paint)
+            } else {
+                try {
+                    val uri = Uri.parse(entry.value)
+                    val input = context.contentResolver.openInputStream(uri)
+                    val bitmap = BitmapFactory.decodeStream(input)
+                    bitmap?.let {
+                        val scaled = Bitmap.createScaledBitmap(
+                            it,
+                            (size / 5).toInt(),
+                            (size / 5).toInt(),
+                            true
+                        )
+                        canvas.drawBitmap(
+                            scaled,
+                            contentX - scaled.width / 2,
+                            contentY - scaled.height / 2,
+                            null
+                        )
+                    }
+                } catch (_: Exception) {
+                    // Nếu lỗi khi load ảnh thì bỏ qua
+                }
+            }
             startAngle += sweepAngle
         }
     }

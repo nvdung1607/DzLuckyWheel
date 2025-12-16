@@ -4,33 +4,39 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="32dp"
-    android:gravity="center_horizontal"
+    android:padding="24dp"
     tools:context=".presentation.ui.MainActivity">
 
-    <!-- Vòng quay căn giữa -->
+    <!-- Vòng quay -->
     <com.example.dzluckywheel.presentation.ui.WheelView
         android:id="@+id/wheelView"
         android:layout_width="300dp"
         android:layout_height="300dp"
-        android:layout_marginBottom="24dp" />
+        android:layout_gravity="center"
+        android:layout_marginBottom="16dp" />
 
-    <!-- Danh sách entries -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recyclerView"
+    <!-- Ô nhập entry chiếm phần còn lại -->
+    <EditText
+        android:id="@+id/etEntries"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        tools:listitem="@layout/item_entry"
-        android:layout_marginBottom="24dp" />
+        android:hint="Enter entries (one per line)"
+        android:inputType="textMultiLine"
+        android:gravity="top|start"
+        android:scrollbars="vertical"
+        android:background="#FFF8DC"
+        android:padding="12dp"
+        android:minLines="4" />
 
-    <!-- 3 nút điều khiển -->
+    <!-- 3 nút điều khiển luôn cố định -->
     <LinearLayout
+        android:id="@+id/buttonBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center"
-        android:layout_marginBottom="16dp">
+        android:layout_marginTop="12dp">
 
         <Button
             android:id="@+id/btnShuffle"
