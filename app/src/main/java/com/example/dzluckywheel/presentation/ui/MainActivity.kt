@@ -14,10 +14,13 @@ class MainActivity : AppCompatActivity() {
 
     private val viewModel: WheelViewModel by viewModels()
     private lateinit var adapter: EntryAdapter
+    private lateinit var wheelView: WheelView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        wheelView = findViewById(R.id.wheelView)
 
         adapter = EntryAdapter(emptyList())
         val recyclerView = findViewById<RecyclerView>(R.id.recyclerView)
@@ -27,11 +30,13 @@ class MainActivity : AppCompatActivity() {
         // Observe LiveData từ ViewModel
         viewModel.entries.observe(this) { entries ->
             adapter.updateData(entries)
+            wheelView.setEntries(entries) // cập nhật vòng quay
         }
 
         // Tạo vài entry mặc định để test
         viewModel.addEntry(Entry(1, EntryType.TEXT, "Alice"))
         viewModel.addEntry(Entry(2, EntryType.TEXT, "Bob"))
         viewModel.addEntry(Entry(3, EntryType.TEXT, "Charlie"))
+        viewModel.addEntry(Entry(4, EntryType.TEXT, "David"))
     }
 }
