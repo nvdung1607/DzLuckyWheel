@@ -7,6 +7,9 @@ import android.net.Uri
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
+import android.view.animation.DecelerateInterpolator
+import androidx.core.content.ContextCompat
+import com.example.dzluckywheel.R
 import com.example.dzluckywheel.data.model.Entry
 import com.example.dzluckywheel.utils.RandomUtils
 import kotlin.math.min
@@ -20,24 +23,61 @@ class WheelView @JvmOverloads constructor(
 ) : View(context, attrs, defStyleAttr) {
 
     private var entries: List<Entry> = emptyList()
-    private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+
+    private val slicePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
+    }
+    private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        color = Color.WHITE
+        strokeWidth = 6f
+    }
+    private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.WHITE
+        textAlign = Paint.Align.LEFT
+        textSize = 45f
+        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        setShadowLayer(4f, 0f, 2f, Color.parseColor("#80000000"))
+    }
+    private val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#20000000")
+        setShadowLayer(20f, 0f, 10f, Color.parseColor("#40000000"))
+    }
+    private val indicatorPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = ContextCompat.getColor(context, R.color.wheel_indicator)
+        style = Paint.Style.FILL
+        setShadowLayer(8f, 0f, 4f, Color.parseColor("#40000000"))
+    }
+    private val centerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.WHITE
+        style = Paint.Style.FILL
+        setShadowLayer(8f, 0f, 4f, Color.parseColor("#40000000"))
+    }
+    private val centerTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = ContextCompat.getColor(context, R.color.md_theme_primary)
         textAlign = Paint.Align.CENTER
         textSize = 40f
+        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
     }
 
     private var rotationAngle = 0f
     private var isSpinning = false
     var onResult: ((Entry) -> Unit)? = null
 
-    // Danh sách màu đa dạng
     private val colors = listOf(
-        Color.parseColor("#FF6F61"), Color.parseColor("#6B5B95"),
-        Color.parseColor("#88B04B"), Color.parseColor("#F7CAC9"),
-        Color.parseColor("#92A8D1"), Color.parseColor("#955251"),
-        Color.parseColor("#B565A7"), Color.parseColor("#009B77"),
-        Color.parseColor("#DD4124"), Color.parseColor("#45B8AC")
+        ContextCompat.getColor(context, R.color.wheel_color_1),
+        ContextCompat.getColor(context, R.color.wheel_color_2),
+        ContextCompat.getColor(context, R.color.wheel_color_3),
+        ContextCompat.getColor(context, R.color.wheel_color_4),
+        ContextCompat.getColor(context, R.color.wheel_color_5),
+        ContextCompat.getColor(context, R.color.wheel_color_6),
+        ContextCompat.getColor(context, R.color.wheel_color_7),
+        ContextCompat.getColor(context, R.color.wheel_color_8)
     )
+
+    init {
+        setLayerType(LAYER_TYPE_SOFTWARE, null)
+    }
 
     fun setEntries(entries: List<Entry>) {
         this.entries = entries
@@ -47,56 +87,71 @@ class WheelView @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         val size = min(width, height).toFloat()
-        val rect = RectF(0f, 0f, size, size)
+        val cx = width / 2f
+        val cy = height / 2f
+        val radius = size / 2f - 24f
+        val rect = RectF(cx - radius, cy - radius, cx + radius, cy + radius)
+
+        canvas.drawCircle(cx, cy, radius, shadowPaint)
 
         if (entries.isEmpty()) {
-            // Vẽ vòng tròn trống khi không có entry
-            paint.color = Color.LTGRAY
-            canvas.drawArc(rect, 0f, 360f, true, paint)
+            slicePaint.color = Color.LTGRAY
+            canvas.drawArc(rect, 0f, 360f, true, slicePaint)
+            drawCenterButton(canvas, cx, cy, radius)
+            drawIndicator(canvas, cx, cy, radius)
             return
         }
 
         val sweepAngle = 360f / entries.size
-        var startAngle = rotationAngle
+        var startAngle = rotationAngle - 90f
 
         entries.forEachIndexed { index, entry ->
-            // Vẽ lát với màu riêng
-            paint.color = colors[index % colors.size]
-            canvas.drawArc(rect, startAngle, sweepAngle, true, paint)
+            slicePaint.color = colors[index % colors.size]
+            canvas.drawArc(rect, startAngle, sweepAngle, true, slicePaint)
+            canvas.drawArc(rect, startAngle, sweepAngle, true, strokePaint)
 
-            // Tính vị trí trung tâm lát để vẽ nội dung
-            val angleRad = Math.toRadians((startAngle + sweepAngle / 2).toDouble())
-            val contentX = size / 2 + (size / 3) * Math.cos(angleRad).toFloat()
-            val contentY = size / 2 + (size / 3) * Math.sin(angleRad).toFloat()
-
+            canvas.save()
+            canvas.translate(cx, cy)
+            canvas.rotate(startAngle + sweepAngle / 2)
+            
             if (entry.type == com.example.dzluckywheel.data.model.EntryType.TEXT) {
-                paint.color = Color.BLACK
-                canvas.drawText(entry.value, contentX, contentY, paint)
+                val text = if (entry.value.length > 12) entry.value.take(10) + ".." else entry.value
+                canvas.drawText(text, radius * 0.35f, 16f, textPaint)
             } else {
                 try {
                     val uri = Uri.parse(entry.value)
                     val input = context.contentResolver.openInputStream(uri)
                     val bitmap = BitmapFactory.decodeStream(input)
+                    input?.close()
                     bitmap?.let {
-                        val scaled = Bitmap.createScaledBitmap(
-                            it,
-                            (size / 5).toInt(),
-                            (size / 5).toInt(),
-                            true
-                        )
-                        canvas.drawBitmap(
-                            scaled,
-                            contentX - scaled.width / 2,
-                            contentY - scaled.height / 2,
-                            null
-                        )
+                        val imgSize = (radius / 3.5f).toInt()
+                        val scaled = Bitmap.createScaledBitmap(it, imgSize, imgSize, true)
+                        canvas.drawBitmap(scaled, radius * 0.5f, -imgSize / 2f, null)
                     }
-                } catch (_: Exception) {
-                    // Nếu lỗi khi load ảnh thì bỏ qua
-                }
+                } catch (_: Exception) {}
             }
+            canvas.restore()
             startAngle += sweepAngle
         }
+
+        canvas.drawCircle(cx, cy, radius, strokePaint)
+        drawCenterButton(canvas, cx, cy, radius)
+        drawIndicator(canvas, cx, cy, radius)
+    }
+
+    private fun drawCenterButton(canvas: Canvas, cx: Float, cy: Float, radius: Float) {
+        val centerRadius = radius * 0.2f
+        canvas.drawCircle(cx, cy, centerRadius, centerPaint)
+        canvas.drawText("QUAY", cx, cy + 14f, centerTextPaint)
+    }
+
+    private fun drawIndicator(canvas: Canvas, cx: Float, cy: Float, radius: Float) {
+        val path = Path()
+        path.moveTo(cx, cy - radius + 30f)
+        path.lineTo(cx - 25f, cy - radius - 20f)
+        path.lineTo(cx + 25f, cy - radius - 20f)
+        path.close()
+        canvas.drawPath(path, indicatorPaint)
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
@@ -107,8 +162,11 @@ class WheelView @JvmOverloads constructor(
             val dy = event.y - cy
             val distance = sqrt(dx.pow(2) + dy.pow(2))
 
-            // Nếu chạm vào tâm và chưa quay
-            if (distance < width / 6f && !isSpinning) {
+            val size = min(width, height).toFloat()
+            val radius = size / 2f - 24f
+            val centerRadius = radius * 0.2f
+
+            if (distance < centerRadius && !isSpinning) {
                 spinWheel()
                 return true
             }
@@ -117,24 +175,27 @@ class WheelView @JvmOverloads constructor(
     }
 
     private fun spinWheel() {
-        if (entries.isEmpty()) return
-        if (isSpinning) return
+        if (entries.isEmpty() || isSpinning) return
 
         isSpinning = true
 
-        val targetAngle = RandomUtils.getTargetAngle(entries)
-        val animator = ValueAnimator.ofFloat(rotationAngle, rotationAngle + 1440f + targetAngle)
-        animator.duration = 3000
+        val validIndices = entries.indices.filter { !entries[it].excluded }
+        val targetIndex = if (validIndices.isNotEmpty()) validIndices.random() else entries.indices.random()
+
+        val sweepAngle = 360f / entries.size
+        val currentMod = rotationAngle % 360f
+        val targetRotation = rotationAngle + 3600f - currentMod - (targetIndex * sweepAngle + sweepAngle / 2f)
+
+        val animator = ValueAnimator.ofFloat(rotationAngle, targetRotation)
+        animator.duration = 4500
+        animator.interpolator = DecelerateInterpolator(1.8f)
         animator.addUpdateListener {
             rotationAngle = it.animatedValue as Float
             invalidate()
         }
         animator.addListener(object : android.animation.Animator.AnimatorListener {
             override fun onAnimationEnd(animation: android.animation.Animator) {
-                val sweepAngle = 360f / entries.size
-                val normalizedAngle = (rotationAngle % 360 + 360) % 360
-                val index = ((normalizedAngle) / sweepAngle).toInt()
-                onResult?.invoke(entries[index])
+                onResult?.invoke(entries[targetIndex])
                 isSpinning = false
             }
             override fun onAnimationStart(animation: android.animation.Animator) {}

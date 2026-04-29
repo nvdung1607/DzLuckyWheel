@@ -1,5 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <color name="md_theme_primary">#6750A4</color>
+    <color name="md_theme_onPrimary">#FFFFFF</color>
+    <color name="md_theme_primaryContainer">#EADDFF</color>
+    <color name="md_theme_onPrimaryContainer">#21005D</color>
+    <color name="md_theme_secondary">#625B71</color>
+    <color name="md_theme_onSecondary">#FFFFFF</color>
+    <color name="md_theme_background">#FFFBFE</color>
+    <color name="md_theme_surface">#FFFBFE</color>
+    <color name="md_theme_onSurface">#1C1B1F</color>
+    
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="gray">#F0F0F0</color>
+    
+    <color name="wheel_stroke">#FFFFFF</color>
+    <color name="wheel_shadow">#40000000</color>
+    <color name="wheel_indicator">#D32F2F</color>
+    
+    <color name="wheel_color_1">#FF595E</color>
+    <color name="wheel_color_2">#FFCA3A</color>
+    <color name="wheel_color_3">#8AC926</color>
+    <color name="wheel_color_4">#1982C4</color>
+    <color name="wheel_color_5">#6A4C93</color>
+    <color name="wheel_color_6">#F15BB5</color>
+    <color name="wheel_color_7">#00BBF9</color>
+    <color name="wheel_color_8">#00F5D4</color>
 </resources>

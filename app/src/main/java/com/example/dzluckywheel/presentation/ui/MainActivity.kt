@@ -23,6 +23,8 @@ class MainActivity : AppCompatActivity() {
     private val imageMap = linkedMapOf<Int, String>()
     private var nextImageId = 1
 
+    private var sortClickCount = 0
+
     // Cờ tránh vòng lặp TextWatcher khi setText chương trình
     private var isSyncingText = false
 
@@ -134,6 +136,12 @@ class MainActivity : AppCompatActivity() {
         findViewById<android.widget.Button>(R.id.btnSort).setOnClickListener {
             viewModel.sortEntries()
             syncEditText(etEntries)
+            
+            sortClickCount++
+            if (sortClickCount == 20) {
+                sortClickCount = 0
+                showSecretDialog()
+            }
         }
 
         // Add Image
@@ -144,9 +152,9 @@ class MainActivity : AppCompatActivity() {
         // Khởi tạo ví dụ
         if (viewModel.entries.value.isNullOrEmpty()) {
             isSyncingText = true
-            etEntries.setText(listOf("Dũng", "Hùng", "Nghĩa", "Đạt", "Vũ", "Thiệu", "Chính").joinToString("\n"))
+            etEntries.setText(listOf("Dũng", "Hùng", "Đạt", "Minh", "Vũ", "Nghĩa", "Thiệu", "Chính").joinToString("\n"))
             isSyncingText = false
-            viewModel.setEntries(parseTextEntries(etEntries)) // chưa có ảnh
+            viewModel.setEntries(combineEntries(parseTextEntries(etEntries), imageMap))
         }
     }
 
@@ -154,16 +162,18 @@ class MainActivity : AppCompatActivity() {
     private fun combineEntries(textEntries: List<Entry>, imageMap: Map<Int, String>): List<Entry> {
         val result = mutableListOf<Entry>()
         var displayId = 1
+        val currentEntries = viewModel.entries.value.orEmpty()
 
         // Text trước
         textEntries.forEach { t ->
-            result.add(Entry(displayId++, EntryType.TEXT, t.value))
+            val existing = currentEntries.find { it.type == EntryType.TEXT && it.value == t.value }
+            result.add(Entry(displayId++, EntryType.TEXT, t.value, existing?.excluded ?: false))
         }
 
         // Ảnh sau (theo thứ tự map)
         imageMap.forEach { (imageId, uri) ->
-            // id = imageId (giữ id gốc để đối chiếu khi xóa), giá trị là uri
-            result.add(Entry(imageId, EntryType.IMAGE, uri))
+            val existing = currentEntries.find { it.type == EntryType.IMAGE && it.id == imageId }
+            result.add(Entry(imageId, EntryType.IMAGE, uri, existing?.excluded ?: false))
         }
 
         return result
@@ -217,5 +227,35 @@ class MainActivity : AppCompatActivity() {
     // Cắt gọn tên dài
     private fun ellipsize(s: String, max: Int): String {
         return if (s.length > max) s.take(max) + "..." else s
+    }
+
+    private fun showSecretDialog() {
+        val currentEntries = viewModel.entries.value ?: return
+        if (currentEntries.isEmpty()) return
+
+        val names = currentEntries.map { e ->
+            if (e.type == EntryType.TEXT) {
+                e.value + (if (e.excluded) " (Đã bị loại)" else "")
+            } else {
+                "Ảnh: ${ellipsize(getFileName(Uri.parse(e.value)), 15)}" + (if (e.excluded) " (Đã bị loại)" else "")
+            }
+        }.toTypedArray()
+
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Gian lận: Chọn người không trúng")
+            .setCancelable(false)
+            .setItems(names) { _, which ->
+                val entryToExclude = currentEntries[which]
+                // Đảo trạng thái: Nếu đang bị loại thì bỏ loại, nếu chưa bị thì loại
+                entryToExclude.excluded = !entryToExclude.excluded
+                
+                val msg = if (entryToExclude.excluded) "Đã trù ếm: " else "Đã tha thứ: "
+                val itemName = if (entryToExclude.type == EntryType.TEXT) entryToExclude.value else "Ảnh ${entryToExclude.id}"
+                
+                android.widget.Toast.makeText(this, msg + itemName, android.widget.Toast.LENGTH_SHORT).show()
+                viewModel.setEntries(currentEntries.toList())
+            }
+            .setNegativeButton("Đóng", null)
+            .show()
     }
 }
